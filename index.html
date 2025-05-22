@@ -162,7 +162,7 @@
 </head>
 </head>
 <body>
- <audio id="birthdaySong" preload="auto" playsinline crossorigin="anonymous">
+<audio id="birthdaySong" preload="auto" playsinline loop>
     <source src="asset/The 1975 - About You (Official).mp3" type="audio/mp3">
   </audio>
 
@@ -177,83 +177,50 @@
       <p>happy birthday for you, semoga panjang umur sehat selalu, dan di beri kelancaran, kesuksesan</p>
     </div>
   </div>
-<script>
-    let audioContext;
-    let audioInitialized = false;
+
+  <script>
     const playButton = document.getElementById('playButton');
     const loadingScreen = document.getElementById('loadingScreen');
     const mainContent = document.getElementById('mainContent');
     const birthdaySong = document.getElementById('birthdaySong');
     const typewriterElement = document.querySelector('.typewriter');
     const textToType = "Happy\nBirthday! Sella\n🎉";
+    let hasInteracted = false;
 
-    // Improved audio initialization
-    async function initAudio() {
-      if (audioInitialized) return;
-      
-      try {
-        if (!audioContext) {
-          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    function typeText(element, text, index = 0) {
+      if (index < text.length) {
+        if (text.charAt(index) === '\n') {
+          element.innerHTML += '<br>';
+        } else {
+          element.innerHTML += text.charAt(index);
         }
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
-        }
-        
-        birthdaySong.volume = 0;
-        await birthdaySong.load();
-        audioInitialized = true;
-      } catch (error) {
-        console.log("Audio initialization failed:", error);
+        setTimeout(() => typeText(element, text, index + 1), 200);
       }
     }
 
-    // Improved audio play function with retries
-    async function playAudioWithRetry(retries = 3) {
-      for (let i = 0; i < retries; i++) {
-        try {
-          const playPromise = birthdaySong.play();
-          if (playPromise !== undefined) {
-            await playPromise;
-            return true;
-          }
-        } catch (error) {
-          console.log(`Playback attempt ${i + 1} failed:`, error);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-      return false;
-    }
-
-    // Improved handle start function
-    async function handleStart(e) {
-      e.preventDefault();
-      
-      if (e.type === 'touchstart') {
-        // Prevent double firing on mobile
-        playButton.removeEventListener('click', handleStart);
-      }
+    async function startSequence() {
+      if (hasInteracted) return;
+      hasInteracted = true;
       
       playButton.disabled = true;
       playButton.textContent = "...";
 
       try {
-        await initAudio();
-        const playbackStarted = await playAudioWithRetry();
-        
-        if (playbackStarted) {
-          // Fade in volume
-          let vol = 0;
-          const fadeIn = setInterval(() => {
-            if (vol < 1) {
-              vol += 0.1;
-              birthdaySong.volume = Math.min(vol, 1);
-            } else {
-              clearInterval(fadeIn);
-            }
-          }, 100);
-        }
+        birthdaySong.volume = 0;
+        await birthdaySong.play();
 
-        // Start animations regardless of audio success
+        // Fade in volume
+        let vol = 0;
+        const fadeIn = setInterval(() => {
+          if (vol < 1) {
+            vol += 0.1;
+            birthdaySong.volume = Math.min(vol, 1);
+          } else {
+            clearInterval(fadeIn);
+          }
+        }, 100);
+
+        // Start animations
         loadingScreen.classList.add('fadeOut');
         
         setTimeout(() => {
@@ -264,7 +231,7 @@
 
       } catch (error) {
         console.log("Start sequence failed:", error);
-        // Fallback to showing content without audio
+        // Fallback without audio
         loadingScreen.classList.add('fadeOut');
         setTimeout(() => {
           loadingScreen.style.display = 'none';
@@ -274,20 +241,19 @@
       }
     }
 
-    // Event Listeners with better mobile support
-    playButton.addEventListener('touchstart', handleStart, { passive: false });
-    playButton.addEventListener('click', handleStart);
+    // Single event listener for both touch and click
+    function handleInteraction(e) {
+      e.preventDefault();
+      startSequence();
+    }
 
-    // Enable audio on page load and first interaction
-    document.addEventListener('DOMContentLoaded', initAudio);
-    document.addEventListener('touchstart', initAudio, { once: true });
+    playButton.addEventListener('click', handleInteraction);
+    playButton.addEventListener('touchstart', handleInteraction, { passive: false });
 
-    // Prevent auto-suspend of AudioContext
-    setInterval(() => {
-      if (audioContext?.state === 'running') {
-        audioContext.resume();
-      }
-    }, 1000);
+    // Pre-load audio
+    document.addEventListener('DOMContentLoaded', () => {
+      birthdaySong.load();
+    });
   </script>
 </body>
 </html>
