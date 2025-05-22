@@ -177,9 +177,9 @@
       <p>happy birthday for you, semoga panjang umur sehat selalu, dan di beri kelancaran, kesuksesan</p>
     </div>
   </div>
-
-  <script>
+<script>
     let audioContext;
+    let audioInitialized = false;
     const playButton = document.getElementById('playButton');
     const loadingScreen = document.getElementById('loadingScreen');
     const mainContent = document.getElementById('mainContent');
@@ -189,6 +189,8 @@
 
     // Improved audio initialization
     async function initAudio() {
+      if (audioInitialized) return;
+      
       try {
         if (!audioContext) {
           audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -196,54 +198,73 @@
         if (audioContext.state === 'suspended') {
           await audioContext.resume();
         }
+        
+        birthdaySong.volume = 0;
         await birthdaySong.load();
+        audioInitialized = true;
       } catch (error) {
         console.log("Audio initialization failed:", error);
       }
     }
 
-    // Improved handle start function with better error handling
+    // Improved audio play function with retries
+    async function playAudioWithRetry(retries = 3) {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const playPromise = birthdaySong.play();
+          if (playPromise !== undefined) {
+            await playPromise;
+            return true;
+          }
+        } catch (error) {
+          console.log(`Playback attempt ${i + 1} failed:`, error);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      return false;
+    }
+
+    // Improved handle start function
     async function handleStart(e) {
       e.preventDefault();
       
-      // Disable button immediately
+      if (e.type === 'touchstart') {
+        // Prevent double firing on mobile
+        playButton.removeEventListener('click', handleStart);
+      }
+      
       playButton.disabled = true;
       playButton.textContent = "...";
 
       try {
-        // Initialize audio
         await initAudio();
+        const playbackStarted = await playAudioWithRetry();
         
-        // Start with volume 0 and fade in
-        birthdaySong.volume = 0;
-        const playPromise = birthdaySong.play();
-        
-        if (playPromise !== undefined) {
-          await playPromise;
-          
+        if (playbackStarted) {
           // Fade in volume
           let vol = 0;
           const fadeIn = setInterval(() => {
             if (vol < 1) {
               vol += 0.1;
-              birthdaySong.volume = vol;
+              birthdaySong.volume = Math.min(vol, 1);
             } else {
               clearInterval(fadeIn);
             }
           }, 100);
-
-          // Start animations
-          loadingScreen.classList.add('fadeOut');
-          
-          setTimeout(() => {
-            loadingScreen.style.display = 'none';
-            mainContent.style.display = 'flex';
-            typeText(typewriterElement, textToType);
-          }, 3200);
         }
+
+        // Start animations regardless of audio success
+        loadingScreen.classList.add('fadeOut');
+        
+        setTimeout(() => {
+          loadingScreen.style.display = 'none';
+          mainContent.style.display = 'flex';
+          typeText(typewriterElement, textToType);
+        }, 3200);
+
       } catch (error) {
-        console.log("Playback failed:", error);
-        // Show content even if audio fails
+        console.log("Start sequence failed:", error);
+        // Fallback to showing content without audio
         loadingScreen.classList.add('fadeOut');
         setTimeout(() => {
           loadingScreen.style.display = 'none';
@@ -253,27 +274,20 @@
       }
     }
 
-    // Improved typewriter function
-    function typeText(element, text, index = 0) {
-      if (index < text.length) {
-        if (text.charAt(index) === '\n') {
-          element.innerHTML += '<br>';
-        } else {
-          element.innerHTML += text.charAt(index);
-        }
-        setTimeout(() => typeText(element, text, index + 1), 100);
-      }
-    }
-
-    // Event Listeners
+    // Event Listeners with better mobile support
     playButton.addEventListener('touchstart', handleStart, { passive: false });
     playButton.addEventListener('click', handleStart);
-    document.addEventListener('DOMContentLoaded', initAudio);
 
-    // Initial audio setup on first interaction
-    document.addEventListener('touchstart', function() {
-      initAudio();
-    }, { once: true });
+    // Enable audio on page load and first interaction
+    document.addEventListener('DOMContentLoaded', initAudio);
+    document.addEventListener('touchstart', initAudio, { once: true });
+
+    // Prevent auto-suspend of AudioContext
+    setInterval(() => {
+      if (audioContext?.state === 'running') {
+        audioContext.resume();
+      }
+    }, 1000);
   </script>
 </body>
 </html>
