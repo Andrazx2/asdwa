@@ -51,8 +51,8 @@
     }
 
     #loadingScreen button {
-      padding: 20px 40px;
-      font-size: 1.25rem;
+      padding: clamp(16px, 4vw, 40px) clamp(32px, 6vw, 80px);
+      font-size: clamp(1rem, 3vw, 1.25rem);
       font-weight: 600;
       background-color: #fff;
       color: #ff1493;
@@ -62,6 +62,9 @@
       box-shadow: 0 5px 15px rgba(255,20,147,0.5);
       transition: all 0.3s ease;
       touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     #loadingScreen button:hover:not(:disabled),
@@ -69,7 +72,11 @@
       background-color: #ff1493;
       color: #fff;
       box-shadow: 0 7px 20px rgba(255,20,147,0.7);
-      transform: translateY(-2px);
+      transform: translateY(-2px) scale(1.05);
+    }
+
+    #loadingScreen button:active {
+      transform: translateY(1px) scale(0.98);
     }
 
     #loadingScreen button:disabled {
@@ -77,6 +84,7 @@
       color: #fff;
       cursor: default;
       box-shadow: none;
+      transform: none;
     }
 
     #mainContent {
@@ -149,13 +157,15 @@
         font-size: 3rem;
       }
 
-      #loadingScreen button {
-        font-size: 1.1rem;
-        padding: 16px 32px;
-      }
-
       .container {
         padding: 20px 15px;
+      }
+    }
+
+    @media (max-width: 320px) {
+      #loadingScreen button {
+        padding: 12px 24px;
+        font-size: 0.9rem;
       }
     }
   </style>
