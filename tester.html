@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Selamat Ulang Tahun!</title>
+  <style>
+ * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      background: linear-gradient(-45deg, #f17ed8, #d45cf1, #f756a1, #80bbf1);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      color: #fff;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    @keyframes gradientBG {
+      0% {background-position: 0% 50%;}
+      50% {background-position: 100% 50%;}
+      100% {background-position: 0% 50%;}
+    }
+
+    #loadingScreen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(135deg, #ff758c, #ff7eb3, #ff9a9e, #fecfef);
+      background-size: 400% 400%;
+      animation: gradientShift 15s ease infinite;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      opacity: 1;
+      transition: opacity 1.2s ease;
+    }
+
+    #loadingScreen.fadeOut {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #loadingScreen button {
+      padding: 20px 40px;
+      font-size: 1.25rem;
+      font-weight: 600;
+      background-color: #fff;
+      color: #ff1493;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 5px 15px rgba(255,20,147,0.5);
+      transition: all 0.3s ease;
+      touch-action: manipulation;
+    }
+
+    #loadingScreen button:hover:not(:disabled),
+    #loadingScreen button:active {
+      background-color: #ff1493;
+      color: #fff;
+      box-shadow: 0 7px 20px rgba(255,20,147,0.7);
+      transform: translateY(-2px);
+    }
+
+    #loadingScreen button:disabled {
+      background-color: #ffa6c9;
+      color: #fff;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    #mainContent {
+      display: none;
+      min-height: 100vh;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.18);
+      padding: 30px 20px;
+      border-radius: 25px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      width: 100%;
+      max-width: 600px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .typewriter {
+      font-size: 2.5rem;
+      margin-bottom: 18px;
+      white-space: pre-line;
+      line-height: 1.3;
+      text-shadow: 0 0 10px rgba(255, 182, 193, 0.8);
+    }
+
+    .cake {
+      font-size: 3.5rem;
+      margin: 25px 0;
+      animation: spin 5s linear infinite;
+      text-shadow: 0 0 12px rgba(255, 182, 193, 0.8);
+    }
+
+    p {
+      font-size: 1.3rem;
+      line-height: 1.6;
+      margin-top: 10px;
+      animation: fadeInUp 2s ease-in-out;
+      text-shadow: 0 0 7px rgba(255, 182, 193, 0.7);
+    }
+
+    audio {
+      display: none;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(25px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 480px) {
+      .typewriter {
+        font-size: 2rem;
+      }
+      
+      p {
+        font-size: 1.1rem;
+      }
+      
+      .cake {
+        font-size: 3rem;
+      }
+
+      #loadingScreen button {
+        font-size: 1.1rem;
+        padding: 16px 32px;
+      }
+
+      .container {
+        padding: 20px 15px;
+      }
+    }
+  </style>
+</head>
+</head>
+<body>
+  <audio id="birthdaySong" loop preload="auto" playsinline>
+    <source src="asset/The 1975 - About You (Official).mp3" type="audio/mp3">
+  </audio>
+
+  <div id="loadingScreen">
+    <button id="playButton">Tap To Start ✨</button>
+  </div>
+
+  <div id="mainContent">
+    <div class="container">
+      <h1 class="typewriter"></h1>
+      <div class="cake" aria-hidden="true">🎂</div>
+      <p>happy birthday for you, semoga panjang umur sehat selalu, dan di beri kelancaran, kesuksesan</p>
+    </div>
+  </div>
+
+  <script>
+    const playButton = document.getElementById('playButton');
+    const loadingScreen = document.getElementById('loadingScreen');
+    const mainContent = document.getElementById('mainContent');
+    const birthdaySong = document.getElementById('birthdaySong');
+    const typewriterElement = document.querySelector('.typewriter');
+    const textToType = "Happy\nBirthday!\n🎉";
+
+    // Unlock audio for Android
+    function unlockAudio() {
+      const context = new (window.AudioContext || window.webkitAudioContext)();
+      if (context.state === 'suspended') {
+        context.resume();
+      }
+    }
+
+    // Handle both touch and click
+    function handleStart(e) {
+      e.preventDefault();
+      unlockAudio();
+      
+      playButton.disabled = true;
+      playButton.textContent = "...";
+
+      // Play audio with better mobile support
+      const playAudio = async () => {
+        try {
+          await birthdaySong.play();
+        } catch (error) {
+          console.log("Audio playback failed:", error);
+        }
+      };
+      
+      playAudio();
+      loadingScreen.classList.add('fadeOut');
+      
+      setTimeout(() => {
+        loadingScreen.style.display = 'none';
+        mainContent.style.display = 'flex';
+        typeText(typewriterElement, textToType);
+      }, 3200);
+    }
+
+    function typeText(element, text, index = 0) {
+      if (index < text.length) {
+        if (text.charAt(index) === '\n') {
+          element.innerHTML += '<br>';
+        } else {
+          element.innerHTML += text.charAt(index);
+        }
+        setTimeout(() => typeText(element, text, index + 1), 100);
+      }
+    }
+
+    // Add touch events with passive: false for better mobile handling
+    playButton.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      handleStart(e);
+    }, { passive: false });
+    
+    playButton.addEventListener('click', handleStart);
+
+    // Enable audio context on page load
+    document.addEventListener('DOMContentLoaded', unlockAudio);
+    
+    // Enable audio on first interaction
+    document.addEventListener('touchstart', function() {
+      unlockAudio();
+      if (birthdaySong) {
+        birthdaySong.load();
+      }
+    }, { once: true });
+  </script>
+</body>
+</html>
