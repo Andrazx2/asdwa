@@ -162,7 +162,7 @@
 </head>
 </head>
 <body>
-  <audio id="birthdaySong" loop preload="auto" playsinline>
+ <audio id="birthdaySong" preload="auto" playsinline crossorigin="anonymous">
     <source src="asset/The 1975 - About You (Official).mp3" type="audio/mp3">
   </audio>
 
@@ -179,6 +179,7 @@
   </div>
 
   <script>
+    let audioContext;
     const playButton = document.getElementById('playButton');
     const loadingScreen = document.getElementById('loadingScreen');
     const mainContent = document.getElementById('mainContent');
@@ -186,41 +187,73 @@
     const typewriterElement = document.querySelector('.typewriter');
     const textToType = "Happy\nBirthday! Sella\n🎉";
 
-    // Unlock audio for Android
-    function unlockAudio() {
-      const context = new (window.AudioContext || window.webkitAudioContext)();
-      if (context.state === 'suspended') {
-        context.resume();
+    // Improved audio initialization
+    async function initAudio() {
+      try {
+        if (!audioContext) {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+        await birthdaySong.load();
+      } catch (error) {
+        console.log("Audio initialization failed:", error);
       }
     }
 
-    // Handle both touch and click
-    function handleStart(e) {
+    // Improved handle start function with better error handling
+    async function handleStart(e) {
       e.preventDefault();
-      unlockAudio();
       
+      // Disable button immediately
       playButton.disabled = true;
       playButton.textContent = "...";
 
-      // Play audio with better mobile support
-      const playAudio = async () => {
-        try {
-          await birthdaySong.play();
-        } catch (error) {
-          console.log("Audio playback failed:", error);
+      try {
+        // Initialize audio
+        await initAudio();
+        
+        // Start with volume 0 and fade in
+        birthdaySong.volume = 0;
+        const playPromise = birthdaySong.play();
+        
+        if (playPromise !== undefined) {
+          await playPromise;
+          
+          // Fade in volume
+          let vol = 0;
+          const fadeIn = setInterval(() => {
+            if (vol < 1) {
+              vol += 0.1;
+              birthdaySong.volume = vol;
+            } else {
+              clearInterval(fadeIn);
+            }
+          }, 100);
+
+          // Start animations
+          loadingScreen.classList.add('fadeOut');
+          
+          setTimeout(() => {
+            loadingScreen.style.display = 'none';
+            mainContent.style.display = 'flex';
+            typeText(typewriterElement, textToType);
+          }, 3200);
         }
-      };
-      
-      playAudio();
-      loadingScreen.classList.add('fadeOut');
-      
-      setTimeout(() => {
-        loadingScreen.style.display = 'none';
-        mainContent.style.display = 'flex';
-        typeText(typewriterElement, textToType);
-      }, 3200);
+      } catch (error) {
+        console.log("Playback failed:", error);
+        // Show content even if audio fails
+        loadingScreen.classList.add('fadeOut');
+        setTimeout(() => {
+          loadingScreen.style.display = 'none';
+          mainContent.style.display = 'flex';
+          typeText(typewriterElement, textToType);
+        }, 3200);
+      }
     }
 
+    // Improved typewriter function
     function typeText(element, text, index = 0) {
       if (index < text.length) {
         if (text.charAt(index) === '\n') {
@@ -232,23 +265,14 @@
       }
     }
 
-    // Add touch events with passive: false for better mobile handling
-    playButton.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      handleStart(e);
-    }, { passive: false });
-    
+    // Event Listeners
+    playButton.addEventListener('touchstart', handleStart, { passive: false });
     playButton.addEventListener('click', handleStart);
+    document.addEventListener('DOMContentLoaded', initAudio);
 
-    // Enable audio context on page load
-    document.addEventListener('DOMContentLoaded', unlockAudio);
-    
-    // Enable audio on first interaction
+    // Initial audio setup on first interaction
     document.addEventListener('touchstart', function() {
-      unlockAudio();
-      if (birthdaySong) {
-        birthdaySong.load();
-      }
+      initAudio();
     }, { once: true });
   </script>
 </body>
