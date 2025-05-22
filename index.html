@@ -162,7 +162,7 @@
 </head>
 </head>
 <body>
-<audio id="birthdaySong" preload="auto" playsinline loop>
+  <audio id="birthdaySong" preload="auto" playsinline loop crossorigin="anonymous">
     <source src="asset/The 1975 - About You (Official).mp3" type="audio/mp3">
   </audio>
 
@@ -179,6 +179,8 @@
   </div>
 
   <script>
+    let audioContext;
+    let audioInitialized = false;
     const playButton = document.getElementById('playButton');
     const loadingScreen = document.getElementById('loadingScreen');
     const mainContent = document.getElementById('mainContent');
@@ -186,6 +188,21 @@
     const typewriterElement = document.querySelector('.typewriter');
     const textToType = "Happy\nBirthday! Sella\n🎉";
     let hasInteracted = false;
+
+    // Initialize audio for mobile
+    async function initAudio() {
+      if (!audioInitialized) {
+        try {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+          }
+          audioInitialized = true;
+        } catch (error) {
+          console.log("Audio initialization failed:", error);
+        }
+      }
+    }
 
     function typeText(element, text, index = 0) {
       if (index < text.length) {
@@ -206,8 +223,19 @@
       playButton.textContent = "...";
 
       try {
+        await initAudio();
+        
         birthdaySong.volume = 0;
-        await birthdaySong.play();
+        // Try playing multiple times if needed
+        for(let i = 0; i < 3; i++) {
+          try {
+            await birthdaySong.play();
+            break;
+          } catch(e) {
+            if(i === 2) throw e;
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
 
         // Fade in volume
         let vol = 0;
@@ -241,19 +269,25 @@
       }
     }
 
-    // Single event listener for both touch and click
     function handleInteraction(e) {
       e.preventDefault();
-      startSequence();
+      initAudio().then(() => startSequence());
     }
 
-    playButton.addEventListener('click', handleInteraction);
+    // Event listeners with better mobile support
     playButton.addEventListener('touchstart', handleInteraction, { passive: false });
+    playButton.addEventListener('click', handleInteraction);
 
-    // Pre-load audio
+    // Initialize audio context
     document.addEventListener('DOMContentLoaded', () => {
       birthdaySong.load();
+      initAudio();
     });
+
+    // Global touch listener for audio context
+    document.addEventListener('touchstart', function() {
+      initAudio();
+    }, { once: true });
   </script>
 </body>
 </html>
